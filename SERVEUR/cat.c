@@ -2,6 +2,7 @@
  * echo - read and echo text lines until client closes connection
  */
 #include "csapp.h"
+#include "structure.h"
 
 
 void cat(int connfd)

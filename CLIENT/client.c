@@ -9,13 +9,14 @@ int main(int argc, char **argv)
     char *host, buf[MAXLINE], *nomfic;
     rio_t rio;
 
-    if (argc != 4) {
-        fprintf(stderr, "usage: %s <host> <port> <nomfic>\n", argv[0]);
+    if (argc != 3) {
+        fprintf(stderr, "usage: %s <host> <nomfic>\n", argv[0]);
         exit(0);
     }
     host = argv[1];
-    port = atoi(argv[2]);
-    nomfic = argv[3];
+    nomfic = argv[2];
+
+    port = 2121;
 
     /*
      * Note that the 'host' can be a name or an IP address.
