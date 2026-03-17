@@ -16,10 +16,10 @@ LDFLAGS =
 LIBS += -lpthread
 
 INCLUDE = csapp.h
-OBJS = csapp.o echo.o cat.o
+OBJS = csapp.o  cat.o 
 INCLDIR = -I.
 
-PROGS = 
+PROGS = serveur client
 
 
 
