@@ -22,6 +22,7 @@ INCLDIR = -I.
 PROGS = 
 
 
+
 all: $(PROGS)
 
 %.o: %.c $(INCLUDE)
