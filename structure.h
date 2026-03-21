@@ -19,6 +19,10 @@ typedef enum{
     SUCCES,
     FICHIER_INEXISTANT,
     ERREUR_REQ
+}type_rep;
+
+typedef struct{
+    type_rep type;
 }response_t;
 
 

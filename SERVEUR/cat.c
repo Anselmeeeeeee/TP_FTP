@@ -8,28 +8,34 @@
 void cat(int connfd)
 {
     char buf[MAXLINE];
-    rio_t rio_client, rio_file;
+    char chemin[MAXLINE + 10];
+    rio_t rio_client;
     int fd;
     ssize_t n;
 
     Rio_readinitb(&rio_client, connfd);
     
-
+    // lecture du nom du fichier 
     if (Rio_readlineb(&rio_client, buf, MAXLINE) <= 0) return;
 
-    buf[strlen(buf)-1] = '\0'; 
+    // nettoyage du nom
+    size_t l = strlen(buf);
+    if (l > 0 && buf[l-1] == '\n') buf[l-1] = '\0';
 
-    if ((fd = open(buf, O_RDONLY, 0)) < 0) {
-        char *msg = "Impossible d'ouvrir le fichier\n";
-        Rio_writen(connfd, msg, strlen(msg));
+    //les fichiers sont stockés dans le dossier DATA du serveur
+    sprintf(chemin, "./DATA/%s", buf);
+
+
+    //ouverture du fichier 
+    if ((fd = open(chemin, O_RDONLY, 0)) < 0) {
+        fprintf(stdout,"Impossible d'ouvrir le fichier\n");
         return;
     }
 
-    Rio_readinitb(&rio_file, fd);
-    while ((n = Rio_readlineb(&rio_file, buf, MAXLINE)) > 0) {
+    // écrit dans un buffer le contenu du fichier
+    while ((n = Rio_readn(fd, buf, MAXLINE)) > 0) {
         Rio_writen(connfd, buf, n); 
     }
     
     Close(fd);
 }
-

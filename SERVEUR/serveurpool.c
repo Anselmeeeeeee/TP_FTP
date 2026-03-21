@@ -31,17 +31,20 @@ void handler_int(int signal) {
 }
 
 int main(int argc, char **argv)
-{
+{   
+    //redirection des signaux
     Signal(SIGINT,handler_int);
     Signal(SIGCHLD, handler_child); 
 
+    //initialisation de vairables
     int listenfd, connfd, port;
     socklen_t clientlen;
     struct sockaddr_in clientaddr;
     char client_ip_string[INET_ADDRSTRLEN];
     char client_hostname[MAX_NAME_LEN];
     
-    port = 2121;
+
+    port = 2121; //port par défaut
     
     clientlen = (socklen_t)sizeof(clientaddr);
 
@@ -51,10 +54,11 @@ int main(int argc, char **argv)
 
     fprintf(stdout,"Demarage du serveur sur le port n°%d",port);
 
+    //boucle de fork pour connecter plusieurs clients sur le serveur 
     for( int i = 0; i < NB_PROC && ((pid[i] = Fork()) != 0);i++){
     }
 
-    while (1) {
+    while (1) {//attente du serveur
 
         if ( pid_p != getpid() ){
             connfd = Accept(listenfd, (SA *)&clientaddr, &clientlen);
@@ -68,7 +72,7 @@ int main(int argc, char **argv)
             
             printf("server connected to %s (%s)\n", client_hostname,
                 client_ip_string);
-
+                    
             cat(connfd);
             Close(connfd);
         }

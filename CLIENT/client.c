@@ -4,11 +4,14 @@
 #include "csapp.h"
 
 int main(int argc, char **argv)
-{
+{   
+    //initialisations de variables
     int clientfd, port, n;
     char *host, buf[MAXLINE], *nomfic;
-    rio_t rio;
+    char chemin[MAXLINE+10] ;
+    char cmd[MAXLINE];
 
+    //gestion des arguments
     if (argc != 3) {
         fprintf(stderr, "usage: %s <host> <nomfic>\n", argv[0]);
         exit(0);
@@ -16,44 +19,31 @@ int main(int argc, char **argv)
     host = argv[1];
     nomfic = argv[2];
 
+    //port par défaut
     port = 2121;
 
-    /*
-     * Note that the 'host' can be a name or an IP address.
-     * If necessary, Open_clientfd will perform the name resolution
-     * to obtain the IP address.
-     */
+    //connection au serveur
     clientfd = Open_clientfd(host, port);
-    
-    /*
-     * At this stage, the connection is established between the client
-     * and the server OS ... but it is possible that the server application
-     * has not yet called "Accept" for this connection
-     */
-    printf("client connected to server OS\n"); 
-    
-    Rio_readinitb(&rio, clientfd);
+    fprintf(stdout,"client connected to server OS\n"); 
 
-
-    char cmd[MAXLINE];
+   
+    //récupération du nom du fichier
     sprintf(cmd, "%s\n", nomfic);
     Rio_writen(clientfd, cmd, strlen(cmd));
 
+    //pour écrire dans dossier où on recoit les données
+    sprintf(chemin, "./DATA/%s", nomfic);
 
-    while ((n = Rio_readlineb(&rio, buf, MAXLINE)) > 0) {
-        Fputs(buf, stdout);
+    //ouverture/création du fichier reçu
+    int fd = open(chemin, O_CREAT | O_TRUNC | O_WRONLY, 0644);
+    
+    //lecture du buffer renvyé par le serveur
+    while ((n = Rio_readn(clientfd, buf, MAXLINE)) > 0) {
+        Rio_writen(fd, buf, n);//écriture du contenu du fichier dans le fichier recu
     }
-    /* 
-    Rio_readinitb(&rio, clientfd);
 
-    while (Fgets(buf, MAXLINE, stdin) != NULL) {
-        Rio_writen(clientfd, buf, strlen(buf));
-        if (Rio_readlineb(&rio, buf, MAXLINE) > 0) {
-            Fputs(buf, stdout);
-        } else {  //the server has prematurely closed the connection 
-            break;
-        }
-    } */
+    //fermeture des fichiers
+    Close(fd);
     Close(clientfd);
     exit(0);
 }
