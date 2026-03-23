@@ -6,7 +6,9 @@
 
 
 void cat(int connfd)
-{
+{   
+    request_t requete;
+    response_t reponse;
     char buf[MAXLINE];
     char chemin[MAXLINE + 10];
     rio_t rio_client;
@@ -16,7 +18,13 @@ void cat(int connfd)
     Rio_readinitb(&rio_client, connfd);
     
     // lecture du nom du fichier 
-    if (Rio_readlineb(&rio_client, buf, MAXLINE) <= 0) return;
+    if (Rio_readnb(&rio_client, &requete, sizeof(requete)) <= 0) return;
+
+    if ( requete.type != GET || requete.type != LS || requete.type != PUT){
+        reponse.type = ERREUR_REQ;
+        Rio_writen(connfd,&reponse,sizeof(reponse));
+        return;
+    }
 
     // nettoyage du nom
     size_t l = strlen(buf);

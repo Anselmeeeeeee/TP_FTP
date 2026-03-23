@@ -3,6 +3,7 @@
 #ifndef REQUETE_H
 #define REQUETE_H
 
+#define TAILLENOM 500
 typedef enum {
     GET,
     PUT,
@@ -12,7 +13,7 @@ typedef enum {
 typedef struct 
 {
    typereq_t type;
-   char *fic;
+   char fic[TAILLENOM];
 }request_t;  
 
 typedef enum{
