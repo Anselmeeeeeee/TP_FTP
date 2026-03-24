@@ -3,11 +3,13 @@
 #ifndef REQUETE_H
 #define REQUETE_H
 
+#define TAILLESOCKET 1024
 #define TAILLENOM 500
 typedef enum {
     GET,
     PUT,
-    LS
+    LS,
+    INCONNU
 }typereq_t;
 
 typedef struct 
@@ -23,6 +25,9 @@ typedef enum{
 }type_rep;
 
 typedef struct{
+    int numero;
+    int total;
+    int taille;
     type_rep type;
 }response_t;
 

@@ -6,63 +6,119 @@
 int main(int argc, char **argv)
 {   
     //initialisations de variables
-    int clientfd, port, n;
+    int clientfd, port;
     char *host, buf[MAXLINE];
     char chemin[MAXLINE+10] ;
-    char cmd[MAXLINE];
     request_t requete;
+    response_t reponse;
     char req[TAILLENOM];
+    rio_t rio_client ;
+    int fd;
+    char ligne[MAXLINE];
+    
 
     //gestion des arguments
-    if (argc != 3) {
-        fprintf(stderr, "usage: %s <action> <nomfic>\n", argv[0]);
+    if (argc != 1) {
+        fprintf(stderr, "usage: %s \n", argv[0]);
         exit(0);
     }
     host = "localhost"; //défaut
     
-    //attribution du type de la commande
-    strcpy(req, argv[1]);
-    if (strcmp(req,"get")==0 ){
-        requete.type = GET;
-    }
-    else if (strcmp(req,"put")==0 ){
-        requete.type = PUT;
-    }
-    else if (strcmp(req,"ls")==0 ){
-        requete.type = LS;
-    }
-    else { // ne correspond à aucune requete
-        printf("TYPE DE REQUETE INCONNUE, PEUT ETRE A CHANGER\n");
-    }
-    strcpy(requete.fic,argv[2]);
-
     //port par défaut
     port = 2121;
 
     //connection au serveur
     clientfd = Open_clientfd(host, port);
+    Rio_readinitb(&rio_client, clientfd);
     fprintf(stdout,"client connected to server OS\n"); 
-
-    //récupération du nom du fichier
-    sprintf(cmd, "%s\n", requete.fic);
-
-    strcpy(requete.fic,cmd);
-
-    Rio_writen(clientfd, &requete, sizeof(requete));
-
-    //pour écrire dans dossier où on recoit les données
-    sprintf(chemin, "./DATA/%s", requete.fic);
-
-    //ouverture/création du fichier reçu
-    int fd = open(requete.fic, O_CREAT | O_TRUNC | O_WRONLY, 0644);
     
-    //lecture du buffer renvyé par le serveur
-    while ((n = Rio_readn(clientfd, buf, MAXLINE)) > 0) {
-        Rio_writen(fd, buf, n);//écriture du contenu du fichier dans le fichier recu
-    }
+    fprintf(stdout,"ftp>");
+    //interaction en ligne de commande
+    while(fgets(ligne,MAXLINE,stdin)){
+        memset(&requete,0,sizeof(requete));
+        //interprétation de la ligne de commande 
 
-    //fermeture des fichiers
-    Close(fd);
+        if (strlen(ligne)>=3){
+            if (ligne[0]=='b' && ligne[1]=='y' && ligne[2]=='e'){
+                exit(0);
+            }
+        }
+        int i=0;
+        char c;
+        c=ligne[i];
+        int cpt = 0;
+        while ((c != ' ' ) && c != '\0'){
+            req[i]=c;
+            i++;
+            cpt++;
+            c = ligne[i];
+        }
+
+        if (strcmp(req,"get")==0 ){
+            requete.type = GET;
+            i++;//on passe l'espace
+            cpt++;
+            c = ligne[i];
+            while (c != '\n'){
+                requete.fic[i-cpt]=c;
+                i++;
+                c = ligne[i];
+            }
+        }
+        else if (strcmp(req,"put")==0 ){
+            requete.type = PUT;
+        }
+        else if (strcmp(req,"ls")==0 ){
+            requete.type = LS;
+        }
+        else { // ne correspond à aucune requete
+            requete.type = INCONNU;
+            printf("TYPE DE REQUETE INCONNUE, PEUT ETRE A CHANGER\n");
+        }
+        //récupération du nom du fichier
+        //sprintf(cmd, "%s\n", requete.fic);
+        //strcpy(requete.fic,cmd);
+
+        Rio_writen(clientfd, &requete, sizeof(requete));
+
+        //pour écrire dans dossier où on recoit les données
+        sprintf(chemin, "./DATA/%s", requete.fic);
+        
+        switch(reponse.type){
+            case SUCCES:
+                //ouverture/création du fichier reçu
+                fd = open(chemin, O_CREAT | O_TRUNC | O_WRONLY, 0644);
+                if (fd<0){
+                    perror("open");
+                    exit(1);
+                }
+                int flag = 1;
+                while (flag) {
+                    Rio_readnb(&rio_client, &reponse, sizeof(reponse));
+                    Rio_readnb(&rio_client, buf, reponse.taille);
+                    Rio_writen(fd, buf, reponse.taille);
+                    fprintf(stdout,"Le paquet numéro %d/%d a bien été recu\n",reponse.numero+1,reponse.total);
+                    if ( reponse.numero == reponse.total - 1){
+                        flag = 0;
+                    }
+                }
+                fprintf(stdout,"Le fichier %s a bien été copié\n", requete.fic);
+                Close(fd);
+                break;
+            case FICHIER_INEXISTANT:
+                fprintf(stdout,"Le fichier recherché n'a pas été trouvé\n");
+                break;
+            case ERREUR_REQ:
+                fprintf(stdout,"La requete n'est pas valide, %s n'est pas une commande valide \n",req);
+                break;
+            default:
+                fprintf(stdout,"autre\n");
+                break;
+        }
+
+        //fermeture des fichiers
+        fprintf(stdout,"ftp>");
+    }
     Close(clientfd);
     exit(0);
 }

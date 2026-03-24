@@ -33,4 +33,4 @@ all: $(PROGS)
 #	$(CC) -o $@ $(LDFLAGS) $(LIBS) $^
 	
 clean:
-	rm -rf $(PROGS) *.o SERVEUR/cat.o
+	rm -rf $(PROGS) *.o SERVEUR/cat.o CLIENT/DATA/*
