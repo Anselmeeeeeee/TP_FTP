@@ -13,7 +13,8 @@ int main(int argc, char **argv)
     response_t reponse;
     char req[TAILLENOM];
     rio_t rio_client ;
-    int fd;
+    int fd, fd2;
+    int flag;
     char ligne[MAXLINE];
     
 
@@ -38,8 +39,10 @@ int main(int argc, char **argv)
         memset(&requete,0,sizeof(requete));
         //interprétation de la ligne de commande 
 
+        //verification de la commande bye
         if (strlen(ligne)>=3){
             if (ligne[0]=='b' && ligne[1]=='y' && ligne[2]=='e'){
+                fprintf(stdout,"Bonne journée\n");
                 exit(0);
             }
         }
@@ -80,20 +83,28 @@ int main(int argc, char **argv)
         //strcpy(requete.fic,cmd);
 
         Rio_writen(clientfd, &requete, sizeof(requete));
-
+        Rio_readnb(&rio_client, &reponse, sizeof(reponse));
         //pour écrire dans dossier où on recoit les données
         sprintf(chemin, "./DATA/%s", requete.fic);
         
+        
         switch(reponse.type){
             case SUCCES:
+                //ouverture d'un fichier temporaire de suavegarde en cas de panne 
+                fd2 = open("sauvegarde", O_CREAT | O_APPEND | O_WRONLY, 0644);
+                if (fd2<0){
+                    perror("open");
+                    exit(1);
+                }
                 //ouverture/création du fichier reçu
                 fd = open(chemin, O_CREAT | O_TRUNC | O_WRONLY, 0644);
                 if (fd<0){
                     perror("open");
                     exit(1);
                 }
-                int flag = 1;
+                flag = 1;
                 while (flag) {
+                    //fichier pour le client 
                     Rio_readnb(&rio_client, &reponse, sizeof(reponse));
                     Rio_readnb(&rio_client, buf, reponse.taille);
                     Rio_writen(fd, buf, reponse.taille);
@@ -101,9 +112,13 @@ int main(int argc, char **argv)
                     if ( reponse.numero == reponse.total - 1){
                         flag = 0;
                     }
+                    //fichier sauvegarde
+                    Rio_writen(fd2, buf, reponse.taille);
                 }
                 fprintf(stdout,"Le fichier %s a bien été copié\n", requete.fic);
+                Close(fd2);
                 Close(fd);
+                remove("sauvegarde");
                 break;
             case FICHIER_INEXISTANT:
                 fprintf(stdout,"Le fichier recherché n'a pas été trouvé\n");

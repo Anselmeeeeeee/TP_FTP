@@ -43,6 +43,7 @@ void cat(int connfd)
 
     //Renvoie la réponse cas succes
     reponse.type = SUCCES;
+    Rio_writen(connfd, &reponse, sizeof(reponse));
     if (taille%TAILLESOCKET==0){
         reponse.total = taille / TAILLESOCKET; 
     }
