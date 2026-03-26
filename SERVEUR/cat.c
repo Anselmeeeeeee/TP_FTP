@@ -14,7 +14,7 @@ void cat(int connfd)
     rio_t rio_client;
     int fd;
     ssize_t n;
-    
+    int w,i;
 
     Rio_readinitb(&rio_client, connfd);
     
@@ -39,19 +39,20 @@ void cat(int connfd)
     }
 
     int taille = lseek(fd, 0, SEEK_END);
-    lseek(fd, 0, SEEK_SET);
+    printf("requete.numero : %d, requete.index : %d", requete.numero, requete.index);
+    lseek(fd, requete.numero * TAILLESOCKET, SEEK_SET);
+    w = requete.numero;
 
     //Renvoie la réponse cas succes
     reponse.type = SUCCES;
-    Rio_writen(connfd, &reponse, sizeof(reponse));
     if (taille%TAILLESOCKET==0){
         reponse.total = taille / TAILLESOCKET; 
     }
     else {
         reponse.total = taille / TAILLESOCKET +1;
     }
-
-    int i = 0;
+    Rio_writen(connfd, &reponse, sizeof(reponse));
+    i = w;
 
     while((n = Rio_readn(fd,buf,TAILLESOCKET)) > 0){
         reponse.numero = i;
@@ -59,13 +60,6 @@ void cat(int connfd)
         Rio_writen(connfd,&reponse,sizeof(reponse));
         Rio_writen(connfd, buf, n);
         i++;
-    }
-
-    // écrit dans un buffer le contenu du fichier
-    /*while ((n = Rio_readn(fd, buf, MAXLINE)) > 0) {
-        Rio_writen(connfd, buf, n); 
-    }
-    */
-    
+    }    
     Close(fd);
 }

@@ -3,6 +3,7 @@
  */
 #include "csapp.h"
 #include "structure.h"
+
 int main(int argc, char **argv)
 {   
     //initialisations de variables
@@ -13,8 +14,9 @@ int main(int argc, char **argv)
     response_t reponse;
     char req[TAILLENOM];
     rio_t rio_client ;
-    int fd, fd2;
+    int fd;
     int flag;
+    int offset;
     char ligne[MAXLINE];
     
 
@@ -34,12 +36,9 @@ int main(int argc, char **argv)
     fprintf(stdout,"client connected to server OS\n"); 
     
     fprintf(stdout,"ftp>");
-    //interaction en ligne de commande
     while(fgets(ligne,MAXLINE,stdin)){
         memset(&requete,0,sizeof(requete));
-        //interprétation de la ligne de commande 
 
-        //verification de la commande bye
         if (strlen(ligne)>=3){
             if (ligne[0]=='b' && ligne[1]=='y' && ligne[2]=='e'){
                 fprintf(stdout,"Bonne journée\n");
@@ -50,7 +49,7 @@ int main(int argc, char **argv)
         char c;
         c=ligne[i];
         int cpt = 0;
-        while ((c != ' ' ) && c != '\0'){
+        while ((c != ' ') && c != '\0' && c != '\n'){
             req[i]=c;
             i++;
             cpt++;
@@ -67,6 +66,24 @@ int main(int argc, char **argv)
                 i++;
                 c = ligne[i];
             }
+            
+            fd = open(requete.fic, O_RDWR, 0644); 
+            if (fd==-1){ 
+                fd = open(requete.fic, O_CREAT | O_RDWR, 0644); 
+                if (fd<0){
+                    perror("open");
+                    exit(1);
+                }
+                offset = 0;
+                requete.numero = 0;
+                requete.index = 0;
+            }
+            else{ 
+                offset = lseek(fd, 0, SEEK_END);
+                requete.numero = offset / TAILLESOCKET;
+                requete.index = offset % TAILLESOCKET;
+            }
+            Close(fd);
         }
         else if (strcmp(req,"put")==0 ){
             requete.type = PUT;
@@ -74,52 +91,37 @@ int main(int argc, char **argv)
         else if (strcmp(req,"ls")==0 ){
             requete.type = LS;
         }
-        else { // ne correspond à aucune requete
+        else { 
             requete.type = INCONNU;
             printf("TYPE DE REQUETE INCONNUE, PEUT ETRE A CHANGER\n");
         }
-        //récupération du nom du fichier
-        //sprintf(cmd, "%s\n", requete.fic);
-        //strcpy(requete.fic,cmd);
 
         Rio_writen(clientfd, &requete, sizeof(requete));
         Rio_readnb(&rio_client, &reponse, sizeof(reponse));
-        //pour écrire dans dossier où on recoit les données
         sprintf(chemin, "./DATA/%s", requete.fic);
-        
         
         switch(reponse.type){
             case SUCCES:
-                //ouverture d'un fichier temporaire de suavegarde en cas de panne 
-                fd2 = open("sauvegarde", O_CREAT | O_APPEND | O_WRONLY, 0644);
-                if (fd2<0){
-                    perror("open");
-                    exit(1);
-                }
-                //ouverture/création du fichier reçu
-                fd = open(chemin, O_CREAT | O_TRUNC | O_WRONLY, 0644);
-                if (fd<0){
-                    perror("open");
-                    exit(1);
-                }
+                fd = open(requete.fic, O_RDWR, 0644); 
                 flag = 1;
                 while (flag) {
-                    //fichier pour le client 
-                    Rio_readnb(&rio_client, &reponse, sizeof(reponse));
+                    if (Rio_readnb(&rio_client, &reponse, sizeof(reponse)) <= 0) break;
                     Rio_readnb(&rio_client, buf, reponse.taille);
+                    
+                    lseek(fd, reponse.numero * TAILLESOCKET, SEEK_SET);
                     Rio_writen(fd, buf, reponse.taille);
+                    
                     fprintf(stdout,"Le paquet numéro %d/%d a bien été recu\n",reponse.numero+1,reponse.total);
-                    if ( reponse.numero == reponse.total - 1){
+                    
+                    if (reponse.numero >= reponse.total - 1){
                         flag = 0;
                     }
-                    //fichier sauvegarde
-                    Rio_writen(fd2, buf, reponse.taille);
                 }
                 fprintf(stdout,"Le fichier %s a bien été copié\n", requete.fic);
-                Close(fd2);
                 Close(fd);
-                remove("sauvegarde");
+                rename(requete.fic, chemin);
                 break;
+
             case FICHIER_INEXISTANT:
                 fprintf(stdout,"Le fichier recherché n'a pas été trouvé\n");
                 break;
@@ -130,8 +132,7 @@ int main(int argc, char **argv)
                 fprintf(stdout,"autre\n");
                 break;
         }
-
-        //fermeture des fichiers
+        memset(req, 0, sizeof(req));
         fprintf(stdout,"ftp>");
     }
     Close(clientfd);
