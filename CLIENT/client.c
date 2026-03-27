@@ -7,13 +7,14 @@
 int main(int argc, char **argv)
 {   
     //initialisations de variables
-    int clientfd, port;
+    int clientfd, port_maitre = 2121, port_esclave;
     char *host, buf[MAXLINE];
     char chemin[MAXLINE+10] ;
     request_t requete;
     response_t reponse;
     char req[TAILLENOM];
     rio_t rio_client ;
+    rio_t rio_maitre;
     int fd;
     int flag;
     int offset;
@@ -26,16 +27,24 @@ int main(int argc, char **argv)
         exit(0);
     }
     host = "localhost"; //défaut
-    
-    //port par défaut
-    port = 2121;
 
     //connection au serveur
-    clientfd = Open_clientfd(host, port);
+    clientfd = Open_clientfd(host, port_maitre);
+    Rio_readinitb(&rio_maitre, clientfd);
+
+    if (Rio_readnb(&rio_maitre, &port_esclave, sizeof(int)) <= 0) {
+        fprintf(stderr, "Impossible de récupérer le port esclave\n");
+        exit(1);
+    }
+
+    Close(clientfd);
+    printf("Redirection par le maître vers le port : %d\n", port_esclave);
+    clientfd = Open_clientfd(host, port_esclave);
+
     Rio_readinitb(&rio_client, clientfd);
-    fprintf(stdout,"client connected to server OS\n"); 
-    
+    printf("Connecté à l'esclave sur le port %d\n", port_esclave);
     fprintf(stdout,"ftp>");
+
     while(fgets(ligne,MAXLINE,stdin)){
         memset(&requete,0,sizeof(requete));
 
@@ -124,9 +133,13 @@ int main(int argc, char **argv)
 
             case FICHIER_INEXISTANT:
                 fprintf(stdout,"Le fichier recherché n'a pas été trouvé\n");
+                remove(requete.fic);
                 break;
             case ERREUR_REQ:
                 fprintf(stdout,"La requete n'est pas valide, %s n'est pas une commande valide \n",req);
+                if (strlen(requete.fic)>0){
+                    remove(requete.fic);
+                }
                 break;
             default:
                 fprintf(stdout,"autre\n");

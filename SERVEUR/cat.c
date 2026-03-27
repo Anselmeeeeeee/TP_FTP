@@ -5,7 +5,7 @@
 #include "structure.h"
 
 
-void cat(int connfd)
+int cat(int connfd)
 {   
     request_t requete;
     response_t reponse;
@@ -19,27 +19,27 @@ void cat(int connfd)
     Rio_readinitb(&rio_client, connfd);
     
     // lecture du nom du fichier 
-    if (Rio_readnb(&rio_client, &requete, sizeof(requete)) <= 0) return;
+    if (Rio_readnb(&rio_client, &requete, sizeof(requete)) <= 0) return 0;
 
     if ( requete.type == INCONNU){
         reponse.type = ERREUR_REQ;
         Rio_writen(connfd,&reponse,sizeof(reponse));
-        return;
+        return 1;
     }
 
     //les fichiers sont stockés dans le dossier DATA du serveur
     sprintf(chemin, "./DATA/%s", requete.fic);
-    printf("%s",chemin);
+    //printf("%s",chemin);
 
     //ouverture du fichier 
     if ((fd = open(chemin, O_RDONLY, 0)) < 0) {
         reponse.type = FICHIER_INEXISTANT;
         Rio_writen(connfd,&reponse,sizeof(reponse));
-        return;
+        return 1;
     }
 
     int taille = lseek(fd, 0, SEEK_END);
-    printf("requete.numero : %d, requete.index : %d", requete.numero, requete.index);
+    //printf("requete.numero : %d, requete.index : %d", requete.numero, requete.index);
     lseek(fd, requete.numero * TAILLESOCKET, SEEK_SET);
     w = requete.numero;
 
@@ -62,4 +62,5 @@ void cat(int connfd)
         i++;
     }    
     Close(fd);
+    return 1;
 }

@@ -5,12 +5,15 @@
 #include "csapp.h"
 
 #define MAX_NAME_LEN 256
-#define NB_PROC 3
+#define NB_SLAVES 3 
 
-pid_t pid[NB_PROC];
+int port_esclave[NB_SLAVES] = {2122, 2123, 2124};
+int esclave_actuel = 0;
+
+pid_t pid[NB_SLAVES];
 int pid_p; 
 
-void cat(int connfd);
+int cat(int connfd);
 
 /* 
  * Note that this code only works with IPv4 addresses
@@ -23,7 +26,7 @@ void handler_child(int signal){
 
 void handler_int(int signal) {
     if (getpid() == pid_p) {
-        for (int i = 0; i < NB_PROC; i++) {
+        for (int i = 0; i < NB_SLAVES; i++) {
             kill(pid[i], SIGINT);
         }
     }
@@ -37,46 +40,40 @@ int main(int argc, char **argv)
     Signal(SIGCHLD, handler_child); 
 
     //initialisation de vairables
-    int listenfd, connfd, port;
+    int listenfd, connfd;
     socklen_t clientlen;
     struct sockaddr_in clientaddr;
-    char client_ip_string[INET_ADDRSTRLEN];
-    char client_hostname[MAX_NAME_LEN];
     
 
-    port = 2121; //port par défaut
-    
     clientlen = (socklen_t)sizeof(clientaddr);
-
-    listenfd = Open_listenfd(port);
 
     pid_p = getpid();
 
-    fprintf(stdout,"Demarage du serveur sur le port n°%d",port);
 
     //boucle de fork pour connecter plusieurs clients sur le serveur 
-    for( int i = 0; i < NB_PROC && ((pid[i] = Fork()) != 0);i++){
+    for( int i = 0; i < NB_SLAVES;i++){
+        if ((pid[i] = Fork()) == 0){
+            int listenfd_esclave = Open_listenfd(port_esclave[i]);
+            printf("[Esclave %d] Écoute sur le port %d\n", i, port_esclave[i]);
+            while(1){
+                int connfd_esclave = Accept(listenfd_esclave, (SA *)&clientaddr, &clientlen);
+                while(cat(connfd_esclave) > 0){
+                }
+                Close(connfd_esclave);
+            }
+            exit(0);
+        }
     }
 
-    while (1) {//attente du serveur
+    listenfd = Open_listenfd(2121);
 
-        if ( pid_p != getpid() ){
-            connfd = Accept(listenfd, (SA *)&clientaddr, &clientlen);
-            /* determine the name of the client */
-            Getnameinfo((SA *) &clientaddr, clientlen,
-                        client_hostname, MAX_NAME_LEN, 0, 0, 0);
-            
-            /* determine the textual representation of the client's IP address */
-            Inet_ntop(AF_INET, &clientaddr.sin_addr, client_ip_string,
-                    INET_ADDRSTRLEN);
-            
-            printf("server connected to %s (%s)\n", client_hostname,
-                client_ip_string);
-            while(1){
-                cat(connfd);
-            }
-            Close(connfd);
-        }
+    while (1) {//attente du serveur
+        connfd = Accept(listenfd, (SA *)&clientaddr, &clientlen);
+        int port = port_esclave[esclave_actuel];
+
+        Rio_writen(connfd,&port,sizeof(int));
+        esclave_actuel = ( esclave_actuel + 1 ) % NB_SLAVES;
+        Close(connfd);
     }
     
     exit(0);
