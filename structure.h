@@ -5,6 +5,7 @@
 
 #define TAILLESOCKET 1024
 #define TAILLENOM 500
+
 typedef enum {
     GET,
     PUT,
@@ -17,7 +18,7 @@ typedef struct
    typereq_t type;
    char fic[TAILLENOM];
    int numero;//numero du paquet
-   int index;//indice dans le paquet au moment où ca a crash (pas sur de la nécessité)
+   int index;//indice dans le paquet au moment où ça a crash 
 }request_t;  
 
 typedef enum{

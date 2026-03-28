@@ -16,7 +16,7 @@ LDFLAGS =
 LIBS += -lpthread
 
 INCLUDE = csapp.h
-OBJS = csapp.o  SERVEUR/cat.o 
+OBJS = csapp.o  SERVEUR/traitement.o 
 INCLDIR = -I.
 
 PROGS = CLIENT/client SERVEUR/serveurpool
@@ -33,4 +33,4 @@ all: $(PROGS)
 #	$(CC) -o $@ $(LDFLAGS) $(LIBS) $^
 	
 clean:
-	rm -rf $(PROGS) *.o SERVEUR/cat.o CLIENT/DATA/*
+	rm -rf $(PROGS) *.o SERVEUR/traitement.o CLIENT/DATA/*
