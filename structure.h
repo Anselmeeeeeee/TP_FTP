@@ -33,5 +33,17 @@ typedef struct{
     type_rep type;
 }response_t;
 
+typedef enum{
+    OUI,
+    NON
+}disponibilite;
+
+typedef struct{
+    int port;
+    disponibilite dispo;
+    int sockfd;
+}esclave_t;
+
+
 
 #endif
