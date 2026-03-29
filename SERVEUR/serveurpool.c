@@ -2,7 +2,7 @@
 #include "structure.h"
 
 #define MAX_NAME_LEN 256
-#define NB_SLAVES 15 
+#define NB_SLAVES 10
 
 //initialisation de variables
 esclave_t tab_esclave[NB_SLAVES];
